@@ -7,7 +7,7 @@ import socket
 import struct
 import datetime
 import time
-from app import db
+from app import db, app
 from models import FlowRecord
 
 # Set up logging
@@ -45,15 +45,16 @@ def start_flow_collector(flow_type='netflow', port=9995):
                     # Receive data (up to 65535 bytes)
                     data, addr = collector_socket.recvfrom(65535)
                     
-                    # Process the flow data
-                    if flow_type.lower() == 'netflow':
-                        process_netflow(data, addr)
-                    elif flow_type.lower() == 'ipfix':
-                        process_ipfix(data, addr)
-                    elif flow_type.lower() == 'sflow':
-                        process_sflow(data, addr)
-                    else:
-                        logger.warning(f"Unknown flow type: {flow_type}")
+                    # Process the flow data with Flask application context
+                    with app.app_context():
+                        if flow_type.lower() == 'netflow':
+                            process_netflow(data, addr)
+                        elif flow_type.lower() == 'ipfix':
+                            process_ipfix(data, addr)
+                        elif flow_type.lower() == 'sflow':
+                            process_sflow(data, addr)
+                        else:
+                            logger.warning(f"Unknown flow type: {flow_type}")
                 
                 except socket.timeout:
                     # This is expected due to the timeout

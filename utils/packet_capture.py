@@ -7,7 +7,7 @@ import time
 import datetime
 import os
 import tempfile
-from app import db
+from app import db, app
 from models import PacketCapture, Packet, CaptureInterface
 
 # Set up logging
@@ -152,51 +152,55 @@ def start_packet_capture(interface, name, filter_expr='', timeout=60):
         logger.info(f"Starting capture on interface {interface} with filter '{filter_expr}'")
         
         try:
-            if PYSHARK_AVAILABLE:
-                # Use PyShark for capture
-                cap = pyshark.LiveCapture(
-                    interface=interface,
-                    display_filter=filter_expr,
-                    output_file=pcap_file
-                )
-                active_captures[capture_id] = cap
+            # Use Flask application context in this thread
+            with app.app_context():
+                if PYSHARK_AVAILABLE:
+                    # Use PyShark for capture
+                    cap = pyshark.LiveCapture(
+                        interface=interface,
+                        display_filter=filter_expr,
+                        output_file=pcap_file
+                    )
+                    active_captures[capture_id] = cap
+                    
+                    # Capture packets
+                    cap.apply_on_packets(packet_callback, timeout=timeout)
                 
-                # Capture packets
-                cap.apply_on_packets(packet_callback, timeout=timeout)
-            
-            elif SCAPY_AVAILABLE:
-                # Use Scapy for capture
-                active_captures[capture_id] = True
-                sniff(
-                    iface=interface,
-                    filter=filter_expr,
-                    prn=packet_callback,
-                    timeout=timeout,
-                    store=0
-                )
-            
-            else:
-                logger.error("No packet capture library available")
-                update_capture_status(capture_id, end=True, error="No packet capture library available")
-                return
-            
-            # Capture finished normally
-            if capture_id in active_captures:
-                # Save any remaining packets
-                save_packets_to_db(capture_id)
+                elif SCAPY_AVAILABLE:
+                    # Use Scapy for capture
+                    active_captures[capture_id] = True
+                    sniff(
+                        iface=interface,
+                        filter=filter_expr,
+                        prn=packet_callback,
+                        timeout=timeout,
+                        store=0
+                    )
                 
-                # Update capture status
-                update_capture_status(capture_id, end=True)
+                else:
+                    logger.error("No packet capture library available")
+                    update_capture_status(capture_id, end=True, error="No packet capture library available")
+                    return
                 
-                # Cleanup
-                del active_captures[capture_id]
-                del capture_data[capture_id]
-                
-                logger.info(f"Capture {capture_id} completed")
+                # Capture finished normally
+                if capture_id in active_captures:
+                    # Save any remaining packets
+                    save_packets_to_db(capture_id)
+                    
+                    # Update capture status
+                    update_capture_status(capture_id, end=True)
+                    
+                    # Cleanup
+                    del active_captures[capture_id]
+                    del capture_data[capture_id]
+                    
+                    logger.info(f"Capture {capture_id} completed")
         
         except Exception as e:
             logger.error(f"Error in capture thread: {e}")
-            update_capture_status(capture_id, end=True, error=str(e))
+            # Use Flask application context to update capture status
+            with app.app_context():
+                update_capture_status(capture_id, end=True, error=str(e))
             
             # Cleanup
             if capture_id in active_captures:
