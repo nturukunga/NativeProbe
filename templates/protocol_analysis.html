@@ -1,0 +1,213 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<title>Protocol Analysis - Network Traffic Analysis Tool</title>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title & Controls -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">Protocol Analysis</h1>
+            <p class="text-secondary">Analyze network protocols and TCP flags</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group" role="group">
+                <button id="refresh-protocol-data" class="btn btn-primary">
+                    <i class="fas fa-sync-alt me-2"></i>Refresh
+                </button>
+                <div class="form-check form-switch ms-3 d-flex align-items-center">
+                    <input class="form-check-input me-2" type="checkbox" id="auto-refresh-toggle">
+                    <label class="form-check-label" for="auto-refresh-toggle">Auto-refresh</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alert-container"></div>
+
+    <!-- Protocol Distribution Section -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Protocol Distribution</h5>
+                </div>
+                <div class="col-auto">
+                    <select id="protocol-time-range" class="form-select form-select-sm">
+                        <option value="1h" selected>Last 1 hour</option>
+                        <option value="6h">Last 6 hours</option>
+                        <option value="24h">Last 24 hours</option>
+                        <option value="7d">Last 7 days</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="card-body" id="protocol-distribution-container">
+            <div class="row">
+                <div class="col-md-5">
+                    <div id="protocol-distribution-chart-container" style="height: 300px;">
+                        <div class="d-flex justify-content-center align-items-center h-100">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Protocol</th>
+                                    <th>Bytes</th>
+                                    <th>Packets</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody id="protocol-distribution-table-body">
+                                <tr>
+                                    <td colspan="4" class="text-center">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                        Loading protocol data...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TCP Flags Analysis Section -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">TCP Flags Analysis</h5>
+                </div>
+                <div class="col-auto">
+                    <select id="tcp-flags-time-range" class="form-select form-select-sm">
+                        <option value="1h" selected>Last 1 hour</option>
+                        <option value="6h">Last 6 hours</option>
+                        <option value="24h">Last 24 hours</option>
+                        <option value="7d">Last 7 days</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="card-body" id="tcp-flags-container">
+            <div class="row">
+                <div class="col-md-5">
+                    <div id="tcp-flags-chart-container" style="height: 300px;">
+                        <div class="d-flex justify-content-center align-items-center h-100">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Flags</th>
+                                    <th>Count</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tcp-flags-table-body">
+                                <tr>
+                                    <td colspan="3" class="text-center">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                        Loading TCP flags data...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Protocol Over Time Section -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Protocol Distribution Over Time</h5>
+                </div>
+                <div class="col-auto">
+                    <div class="d-flex gap-2">
+                        <select id="protocol-over-time-range" class="form-select form-select-sm">
+                            <option value="1h" selected>Last 1 hour</option>
+                            <option value="6h">Last 6 hours</option>
+                            <option value="24h">Last 24 hours</option>
+                            <option value="7d">Last 7 days</option>
+                        </select>
+                        <select id="protocol-over-time-interval" class="form-select form-select-sm">
+                            <option value="1m">1 minute intervals</option>
+                            <option value="5m" selected>5 minute intervals</option>
+                            <option value="10m">10 minute intervals</option>
+                            <option value="30m">30 minute intervals</option>
+                            <option value="1h">1 hour intervals</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="protocol-over-time-chart-container" style="height: 400px;">
+                <div class="d-flex justify-content-center align-items-center h-100">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer bg-transparent">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="alert alert-info mb-0">
+                        <h6 class="alert-heading mb-2"><i class="fas fa-info-circle me-2"></i>TCP Flags Legend</h6>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <ul class="mb-0 ps-3">
+                                    <li><span class="flag-S">S</span> - SYN (Synchronize)</li>
+                                    <li><span class="flag-A">A</span> - ACK (Acknowledgment)</li>
+                                    <li><span class="flag-F">F</span> - FIN (Finish)</li>
+                                    <li><span class="flag-R">R</span> - RST (Reset)</li>
+                                </ul>
+                            </div>
+                            <div class="col-sm-6">
+                                <ul class="mb-0 ps-3">
+                                    <li><span class="flag-P">P</span> - PSH (Push)</li>
+                                    <li><span class="flag-U">U</span> - URG (Urgent)</li>
+                                    <li><span class="flag-E">E</span> - ECE (ECN-Echo)</li>
+                                    <li><span class="flag-C">C</span> - CWR (Congestion Window Reduced)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="alert alert-secondary mb-0">
+                        <h6 class="alert-heading mb-2"><i class="fas fa-lightbulb me-2"></i>Common Flag Combinations</h6>
+                        <ul class="mb-0 ps-3">
+                            <li><span class="tcp-flags"><span class="flag-S">S</span></span> - Connection initiation</li>
+                            <li><span class="tcp-flags"><span class="flag-S">S</span><span class="flag-A">A</span></span> - Connection response</li>
+                            <li><span class="tcp-flags"><span class="flag-F">F</span><span class="flag-A">A</span></span> - Connection termination</li>
+                            <li><span class="tcp-flags"><span class="flag-R">R</span><span class="flag-A">A</span></span> - Connection reset</li>
+                            <li><span class="tcp-flags"><span class="flag-P">P</span><span class="flag-A">A</span></span> - Push data with acknowledgment</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/protocol_analysis.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,197 @@
+/* Custom CSS for Network Traffic Analysis Tool */
+
+/* Dashboard */
+.stats-card {
+    transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.anomaly-icon {
+    font-size: 1.5rem;
+}
+
+.protocol-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Chart containers */
+.chart-container {
+    position: relative;
+    min-height: 250px;
+    margin-bottom: 1.5rem;
+}
+
+/* Custom chart tooltips */
+.chart-tooltip {
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 4px;
+    padding: 8px;
+    color: #fff;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+/* Packets table */
+.packet-row {
+    cursor: pointer;
+}
+
+.packet-row:hover {
+    background-color: var(--bs-dark-bg-subtle);
+}
+
+/* Packet details */
+.packet-details {
+    font-family: monospace;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+}
+
+.hex-dump {
+    font-family: monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    overflow-x: auto;
+}
+
+/* Filter expression input */
+.filter-expression {
+    font-family: monospace;
+}
+
+/* Protocol colors */
+.protocol-tcp {
+    color: var(--bs-info);
+}
+
+.protocol-udp {
+    color: var(--bs-success);
+}
+
+.protocol-icmp {
+    color: var(--bs-warning);
+}
+
+.protocol-dns {
+    color: var(--bs-purple);
+}
+
+.protocol-http {
+    color: var(--bs-orange);
+}
+
+.protocol-https {
+    color: var(--bs-teal);
+}
+
+/* Severity levels */
+.severity-1 {
+    background-color: var(--bs-info-bg-subtle);
+    border-left: 4px solid var(--bs-info);
+}
+
+.severity-2 {
+    background-color: var(--bs-success-bg-subtle);
+    border-left: 4px solid var(--bs-success);
+}
+
+.severity-3 {
+    background-color: var(--bs-warning-bg-subtle);
+    border-left: 4px solid var(--bs-warning);
+}
+
+.severity-4 {
+    background-color: var(--bs-danger-bg-subtle);
+    border-left: 4px solid var(--bs-danger);
+}
+
+.severity-5 {
+    background-color: var(--bs-danger-bg-subtle);
+    border-left: 4px solid var(--bs-danger);
+    font-weight: bold;
+}
+
+/* Terminal-like output */
+.terminal {
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+    border-radius: 5px;
+    padding: 15px;
+    font-family: monospace;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* TCP Flags */
+.tcp-flags {
+    font-family: monospace;
+    font-weight: bold;
+}
+
+.flag-S { color: var(--bs-info); }      /* SYN */
+.flag-A { color: var(--bs-success); }   /* ACK */
+.flag-F { color: var(--bs-warning); }   /* FIN */
+.flag-R { color: var(--bs-danger); }    /* RST */
+.flag-P { color: var(--bs-purple); }    /* PSH */
+.flag-U { color: var(--bs-teal); }      /* URG */
+
+/* Loading spinners */
+.loader-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+
+/* Network Graph */
+.network-graph {
+    width: 100%;
+    height: 500px;
+    background-color: var(--bs-dark-bg-subtle);
+    border-radius: 5px;
+}
+
+.network-node {
+    cursor: pointer;
+}
+
+.network-link {
+    stroke-opacity: 0.6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .chart-container {
+        min-height: 200px;
+    }
+    
+    .network-graph {
+        height: 350px;
+    }
+}
+
+@media (max-width: 768px) {
+    .chart-container {
+        min-height: 180px;
+    }
+    
+    .network-graph {
+        height: 300px;
+    }
+}
+
+/* Custom animation for alerts */
+@keyframes fadeInAlert {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.alert-animated {
+    animation: fadeInAlert 0.3s ease-out;
+}

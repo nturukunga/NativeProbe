@@ -1,0 +1,218 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<title>Packet Analysis - Network Traffic Analysis Tool</title>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title & Controls -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">Packet Analysis</h1>
+            <p class="text-secondary">Capture and analyze network packets</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#start-capture-modal">
+                    <i class="fas fa-play me-2"></i>Start Capture
+                </button>
+                <button id="refresh-packets" class="btn btn-outline-secondary">
+                    <i class="fas fa-sync-alt me-2"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alert-container"></div>
+
+    <div class="row">
+        <!-- Captures List -->
+        <div class="col-md-3 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">Packet Captures</h5>
+                </div>
+                <div class="card-body" id="captures-list">
+                    <div class="text-center">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <p>Loading captures...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Packets View -->
+        <div class="col-md-9">
+            <div id="packets-container" style="display: none;">
+                <!-- Packets Filter & Controls -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-12 col-md-6">
+                                <div class="input-group">
+                                    <input type="text" class="form-control filter-expression" id="packet-filter" placeholder="Filter packets...">
+                                    <button class="btn btn-outline-secondary" type="button" id="apply-filter">
+                                        <i class="fas fa-filter"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 text-md-end">
+                                <div class="btn-group" role="group">
+                                    <button id="export-packets" class="btn btn-outline-secondary">
+                                        <i class="fas fa-download me-2"></i>Export
+                                    </button>
+                                    <button id="clear-filter" class="btn btn-outline-secondary">
+                                        <i class="fas fa-eraser me-2"></i>Clear Filter
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Packets Table -->
+                <div class="card mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-transparent border-0">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h5 class="mb-0">Packets</h5>
+                            </div>
+                            <div class="col-auto">
+                                <span id="pagination-info" class="text-muted">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Time</th>
+                                        <th>Protocol</th>
+                                        <th>Source</th>
+                                        <th>Destination</th>
+                                        <th>Length</th>
+                                        <th>TCP Flags</th>
+                                        <th>Info</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="packets-table-body">
+                                    <tr>
+                                        <td colspan="8" class="text-center">Select a capture to view packets</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <ul class="pagination mb-0">
+                                    <li class="page-item">
+                                        <button id="prev-page" class="page-link" disabled>
+                                            <i class="fas fa-chevron-left"></i>
+                                        </button>
+                                    </li>
+                                    <li class="page-item">
+                                        <button id="next-page" class="page-link" disabled>
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Packet Details -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-transparent border-0">
+                        <h5 class="mb-0">Packet Details</h5>
+                    </div>
+                    <div class="card-body" id="packet-details">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-mouse-pointer fa-2x mb-2"></i>
+                            <p>Select a packet to view details</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Start Capture Modal -->
+<div class="modal fade" id="start-capture-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Start Packet Capture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="start-capture-form">
+                    <div class="mb-3">
+                        <label for="capture-name" class="form-label">Capture Name</label>
+                        <input type="text" class="form-control" id="capture-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="capture-interface" class="form-label">Interface</label>
+                        <select class="form-select" id="capture-interface" required>
+                            <option value="">Loading interfaces...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="capture-filter" class="form-label">Capture Filter (optional)</label>
+                        <input type="text" class="form-control filter-expression" id="capture-filter" placeholder="e.g. tcp port 80">
+                        <div class="form-text">Use standard pcap filter expressions</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="capture-timeout" class="form-label">Timeout (seconds)</label>
+                        <input type="number" class="form-control" id="capture-timeout" value="60" min="10" max="3600">
+                        <div class="form-text">The capture will automatically stop after this time</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="start-capture-form" class="btn btn-primary">Start Capture</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/packet_analysis.js') }}"></script>
+<script>
+    // Clear filter button
+    document.addEventListener('DOMContentLoaded', function() {
+        const clearFilterBtn = document.getElementById('clear-filter');
+        const packetFilterInput = document.getElementById('packet-filter');
+        
+        if (clearFilterBtn && packetFilterInput) {
+            clearFilterBtn.addEventListener('click', function() {
+                packetFilterInput.value = '';
+                // If there's an active capture, reload the packets
+                if (currentCaptureId) {
+                    loadPackets(currentCaptureId, 1);
+                }
+            });
+        }
+        
+        // Refresh button
+        const refreshBtn = document.getElementById('refresh-packets');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() {
+                loadCaptures();
+                if (currentCaptureId) {
+                    loadPackets(currentCaptureId, currentPage);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

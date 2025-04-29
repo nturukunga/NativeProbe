@@ -1,0 +1,373 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<title>Dashboard - Network Traffic Analysis Tool</title>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title & Controls -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">Network Dashboard</h1>
+            <p class="text-secondary">Real-time network traffic analysis and monitoring</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group" role="group">
+                <button id="refresh-dashboard" class="btn btn-outline-primary">
+                    <i class="fas fa-sync-alt me-2"></i>Refresh
+                </button>
+                <select id="refresh-rate" class="form-select">
+                    <option value="0">Manual refresh</option>
+                    <option value="5" selected>Refresh every 5s</option>
+                    <option value="10">Refresh every 10s</option>
+                    <option value="30">Refresh every 30s</option>
+                    <option value="60">Refresh every 1m</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alert-container"></div>
+
+    <!-- Status Cards -->
+    <div class="row mb-4">
+        <div class="col-12 col-sm-6 col-xl-3 mb-4">
+            <div class="card stats-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-auto">
+                            <div class="bg-primary text-white rounded p-3">
+                                <i class="fas fa-tachometer-alt fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <h6 class="text-uppercase text-muted">Bandwidth</h6>
+                            <h2 class="mb-0" id="total-bandwidth">0 B</h2>
+                            <small class="text-muted">Current traffic</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3 mb-4">
+            <div class="card stats-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-auto">
+                            <div class="bg-info text-white rounded p-3">
+                                <i class="fas fa-exchange-alt fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <h6 class="text-uppercase text-muted">Traffic Rate</h6>
+                            <div class="mb-0">
+                                <div><i class="fas fa-arrow-down text-success me-1"></i><span id="in-rate">0 B</span></div>
+                                <div><i class="fas fa-arrow-up text-danger me-1"></i><span id="out-rate">0 B</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3 mb-4">
+            <div class="card stats-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-auto">
+                            <div class="bg-success text-white rounded p-3">
+                                <i class="fas fa-file-code fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <h6 class="text-uppercase text-muted">Top Protocol</h6>
+                            <h3 class="mb-0 protocol-label" id="top-protocol">-</h3>
+                            <small class="text-muted">Most active protocol</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3 mb-4">
+            <div class="card stats-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-auto">
+                            <div class="bg-warning text-white rounded p-3">
+                                <i class="fas fa-exclamation-triangle fa-2x"></i>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <h6 class="text-uppercase text-muted">Anomalies <span class="badge bg-secondary rounded-pill" id="anomaly-count">0</span></h6>
+                            <h3 class="mb-0">Detection Active</h3>
+                            <small class="text-muted">Monitoring for issues</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Row -->
+    <div class="row">
+        <!-- Left Column - Charts -->
+        <div class="col-lg-8">
+            <!-- Bandwidth Chart -->
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">Bandwidth Usage</h5>
+                            <small class="text-muted">Traffic volume over time</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="bandwidth-chart"></canvas>
+                        <div class="chart-loading position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-dark bg-opacity-25" style="display:none;">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Protocol Distribution Chart -->
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">Protocol Distribution</h5>
+                            <small class="text-muted">Traffic breakdown by protocol</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <div class="chart-container" style="height: 250px;">
+                                <canvas id="protocol-chart"></canvas>
+                                <div class="chart-loading position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-dark bg-opacity-25" style="display:none;">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Protocol</th>
+                                            <th>Bytes</th>
+                                            <th>Packets</th>
+                                            <th>Percentage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="protocol-table-body">
+                                        <tr>
+                                            <td colspan="4" class="text-center">
+                                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                                Loading protocol data...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Traffic Rate Chart -->
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">Traffic Trends</h5>
+                            <small class="text-muted">Packet rate over time</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="traffic-chart"></canvas>
+                        <div class="chart-loading position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-dark bg-opacity-25" style="display:none;">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Info Panels -->
+        <div class="col-lg-4">
+            <!-- Quick Capture Card -->
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">Quick Capture</h5>
+                </div>
+                <div class="card-body">
+                    <form id="quick-capture-form">
+                        <div class="mb-3">
+                            <label for="quick-interface" class="form-label">Interface</label>
+                            <select class="form-select" id="quick-interface" required>
+                                {% for interface in interfaces %}
+                                <option value="{{ interface.name }}">{{ interface.name }}{% if interface.description %} ({{ interface.description }}){% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="quick-duration" class="form-label">Duration (seconds)</label>
+                            <input type="number" class="form-control" id="quick-duration" value="60" min="10" max="3600">
+                        </div>
+                        <div class="mb-3">
+                            <label for="quick-filter" class="form-label">Capture Filter (optional)</label>
+                            <input type="text" class="form-control filter-expression" id="quick-filter" placeholder="e.g. tcp port 80">
+                            <div class="form-text">Use standard pcap filter expressions</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-play me-2"></i>Start Capture
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Active Captures Card -->
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">Active Captures <span class="badge bg-secondary rounded-pill" id="capture-count">0</span></h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Interface</th>
+                                    <th>Start Time</th>
+                                    <th>Packets</th>
+                                    <th>Filter</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="active-captures-body">
+                                <tr>
+                                    <td colspan="6" class="text-center">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                        Loading active captures...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Anomalies Card -->
+            <div class="card mb-4 border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">Recent Anomalies</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush" id="anomaly-list">
+                        <li class="list-group-item text-center">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                            Loading anomalies...
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-footer bg-transparent text-end">
+                    <a href="/anomaly-detection" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    // Quick capture form submission
+    document.addEventListener('DOMContentLoaded', function() {
+        const quickCaptureForm = document.getElementById('quick-capture-form');
+        if (quickCaptureForm) {
+            quickCaptureForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                const interface = document.getElementById('quick-interface').value;
+                const duration = document.getElementById('quick-duration').value;
+                const filter = document.getElementById('quick-filter').value;
+                
+                // Generate a capture name with timestamp
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const name = `Quick-Capture-${timestamp}`;
+                
+                // Show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Starting...';
+                
+                // Send request to start capture
+                fetch('/api/packet-analysis/start-capture', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        interface: interface,
+                        name: name,
+                        filter_expression: filter,
+                        timeout: parseInt(duration)
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        const alertContainer = document.getElementById('alert-container');
+                        if (alertContainer) {
+                            alertContainer.innerHTML = `
+                                <div class="alert alert-success alert-animated alert-dismissible fade show" role="alert">
+                                    Capture started successfully on ${interface}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            `;
+                        }
+                        
+                        // Reset form
+                        document.getElementById('quick-filter').value = '';
+                        
+                        // Refresh dashboard
+                        loadDashboardData();
+                    } else {
+                        throw new Error(data.error || 'Failed to start capture');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error starting capture:', error);
+                    
+                    // Show error message
+                    const alertContainer = document.getElementById('alert-container');
+                    if (alertContainer) {
+                        alertContainer.innerHTML = `
+                            <div class="alert alert-danger alert-animated alert-dismissible fade show" role="alert">
+                                Error starting capture: ${error.message}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        `;
+                    }
+                })
+                .finally(() => {
+                    // Reset button
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

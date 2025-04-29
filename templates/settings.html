@@ -1,0 +1,617 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<title>Settings - Network Traffic Analysis Tool</title>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">Settings</h1>
+            <p class="text-secondary">Configure application settings and network interfaces</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group" role="group">
+                <button id="save-settings" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Save Changes
+                </button>
+                <button id="reset-settings" class="btn btn-outline-secondary">
+                    <i class="fas fa-undo me-2"></i>Reset to Default
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alert-container"></div>
+
+    <div class="row">
+        <!-- Left Column - Settings -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">Application Settings</h5>
+                </div>
+                <div class="card-body">
+                    <form id="settings-form">
+                        <!-- Capture Settings -->
+                        <h6 class="border-bottom pb-2 mb-3">Packet Capture Settings</h6>
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="capture-timeout" class="form-label">Default Capture Timeout (seconds)</label>
+                                    <input type="number" class="form-control" id="capture-timeout" name="capture_timeout" min="10" max="3600">
+                                    <div class="form-text">Default timeout for packet captures</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max-packet-buffer" class="form-label">Maximum Packet Buffer</label>
+                                    <input type="number" class="form-control" id="max-packet-buffer" name="max_packet_buffer" min="1000" max="100000">
+                                    <div class="form-text">Maximum packets to keep in memory before writing to database</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Flow Analysis Settings -->
+                        <h6 class="border-bottom pb-2 mb-3">Flow Analysis Settings</h6>
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="flow-collector-port" class="form-label">Default Flow Collector Port</label>
+                                    <input type="number" class="form-control" id="flow-collector-port" name="flow_collector_port" min="1024" max="65535">
+                                    <div class="form-text">Default port for flow collector (NetFlow, IPFIX, sFlow)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="flow-analysis-interval" class="form-label">Flow Analysis Interval (seconds)</label>
+                                    <input type="number" class="form-control" id="flow-analysis-interval" name="flow_analysis_interval" min="10" max="3600">
+                                    <div class="form-text">Interval for flow data analysis</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Anomaly Detection Settings -->
+                        <h6 class="border-bottom pb-2 mb-3">Anomaly Detection Settings</h6>
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="anomaly-check-interval" class="form-label">Anomaly Check Interval (seconds)</label>
+                                    <input type="number" class="form-control" id="anomaly-check-interval" name="anomaly_check_interval" min="60" max="3600">
+                                    <div class="form-text">How often to check for network anomalies</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="anomaly-threshold" class="form-label">Default Anomaly Threshold</label>
+                                    <input type="number" class="form-control" id="anomaly-threshold" name="anomaly_threshold" min="0.5" max="10" step="0.1">
+                                    <div class="form-text">Default sensitivity threshold for anomaly detection</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- UI Settings -->
+                        <h6 class="border-bottom pb-2 mb-3">User Interface Settings</h6>
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="items-per-page" class="form-label">Items Per Page</label>
+                                    <input type="number" class="form-control" id="items-per-page" name="items_per_page" min="10" max="200">
+                                    <div class="form-text">Number of items to display per page in tables</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="chart-refresh-interval" class="form-label">Chart Refresh Interval (ms)</label>
+                                    <input type="number" class="form-control" id="chart-refresh-interval" name="chart_refresh_interval" min="1000" max="60000" step="1000">
+                                    <div class="form-text">How often charts refresh (in milliseconds)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Database Information -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">Database Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-database me-2"></i>
+                            <span>The application is using a SQL database for storing network traffic data.</span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Database Type</label>
+                            <input type="text" class="form-control" value="SQLite/PostgreSQL (auto-detected)" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Database Location</label>
+                            <input type="text" class="form-control" value="Configured through environment variables" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button id="compact-database" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-compress-alt me-2"></i>Compact Database
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="purge-old-data" class="btn btn-outline-danger w-100">
+                                <i class="fas fa-trash-alt me-2"></i>Purge Old Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Network Interfaces -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Network Interfaces</h5>
+                        <button id="refresh-interfaces" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-sync-alt me-2"></i>Refresh Interfaces
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group" id="interfaces-list">
+                        <div class="d-flex justify-content-center align-items-center py-4">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <span class="ms-3">Loading interfaces...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About Section -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">About</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            <i class="fas fa-network-wired fa-3x text-primary"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-1">Network Traffic Analysis Tool</h5>
+                            <p class="mb-0 text-muted">Version 1.0.0</p>
+                        </div>
+                    </div>
+                    
+                    <p>A comprehensive network traffic analysis tool that captures, processes, and visualizes network data for security monitoring and performance optimization.</p>
+                    
+                    <h6>Features</h6>
+                    <ul>
+                        <li>Packet capture and analysis</li>
+                        <li>Flow analysis (NetFlow, IPFIX, sFlow)</li>
+                        <li>Protocol distribution analysis</li>
+                        <li>TCP flags monitoring</li>
+                        <li>Anomaly detection</li>
+                        <li>Real-time traffic visualization</li>
+                    </ul>
+                    
+                    <div class="alert alert-light">
+                        <strong>Credits:</strong>
+                        <ul class="mb-0">
+                            <li>Built with Flask, SQLAlchemy, and Bootstrap</li>
+                            <li>Packet capture using PyShark/Scapy</li>
+                            <li>Visualization with Chart.js and D3.js</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Purge Data Modal -->
+<div class="modal fade" id="purge-data-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Purge Old Data</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone.
+                </div>
+                <p>Select the time frame for which data should be kept. All data older than the selected time frame will be permanently deleted.</p>
+                <form id="purge-data-form">
+                    <div class="mb-3">
+                        <label for="purge-timeframe" class="form-label">Keep data from the last:</label>
+                        <select class="form-select" id="purge-timeframe" required>
+                            <option value="24h">24 hours</option>
+                            <option value="7d" selected>7 days</option>
+                            <option value="30d">30 days</option>
+                            <option value="90d">90 days</option>
+                            <option value="all">Delete all data</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-purge">Purge Data</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load settings
+    loadSettings();
+    
+    // Load interfaces
+    loadInterfaces();
+    
+    // Save settings button
+    const saveSettingsBtn = document.getElementById('save-settings');
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', saveSettings);
+    }
+    
+    // Reset settings button
+    const resetSettingsBtn = document.getElementById('reset-settings');
+    if (resetSettingsBtn) {
+        resetSettingsBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to reset all settings to default values?')) {
+                resetSettings();
+            }
+        });
+    }
+    
+    // Refresh interfaces button
+    const refreshInterfacesBtn = document.getElementById('refresh-interfaces');
+    if (refreshInterfacesBtn) {
+        refreshInterfacesBtn.addEventListener('click', refreshInterfaces);
+    }
+    
+    // Compact database button
+    const compactDatabaseBtn = document.getElementById('compact-database');
+    if (compactDatabaseBtn) {
+        compactDatabaseBtn.addEventListener('click', function() {
+            showAlert('Database compaction is not implemented in this version', 'info');
+        });
+    }
+    
+    // Purge old data button
+    const purgeOldDataBtn = document.getElementById('purge-old-data');
+    if (purgeOldDataBtn) {
+        purgeOldDataBtn.addEventListener('click', function() {
+            const purgeModal = new bootstrap.Modal(document.getElementById('purge-data-modal'));
+            purgeModal.show();
+        });
+    }
+    
+    // Confirm purge button
+    const confirmPurgeBtn = document.getElementById('confirm-purge');
+    if (confirmPurgeBtn) {
+        confirmPurgeBtn.addEventListener('click', function() {
+            const timeframe = document.getElementById('purge-timeframe').value;
+            purgeData(timeframe);
+            
+            // Hide modal
+            const purgeModal = bootstrap.Modal.getInstance(document.getElementById('purge-data-modal'));
+            purgeModal.hide();
+        });
+    }
+});
+
+// Load application settings
+function loadSettings() {
+    fetch('/api/settings/get')
+        .then(response => response.json())
+        .then(settings => {
+            // Populate form with settings
+            if (settings.capture_timeout) {
+                document.getElementById('capture-timeout').value = settings.capture_timeout.value;
+            }
+            if (settings.max_packet_buffer) {
+                document.getElementById('max-packet-buffer').value = settings.max_packet_buffer.value;
+            }
+            if (settings.flow_collector_port) {
+                document.getElementById('flow-collector-port').value = settings.flow_collector_port.value;
+            }
+            if (settings.flow_analysis_interval) {
+                document.getElementById('flow-analysis-interval').value = settings.flow_analysis_interval.value;
+            }
+            if (settings.anomaly_check_interval) {
+                document.getElementById('anomaly-check-interval').value = settings.anomaly_check_interval.value;
+            }
+            if (settings.anomaly_threshold) {
+                document.getElementById('anomaly-threshold').value = settings.anomaly_threshold.value;
+            }
+            if (settings.items_per_page) {
+                document.getElementById('items-per-page').value = settings.items_per_page.value;
+            }
+            if (settings.chart_refresh_interval) {
+                document.getElementById('chart-refresh-interval').value = settings.chart_refresh_interval.value;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading settings:', error);
+            showAlert('Error loading settings: ' + error.message, 'danger');
+        });
+}
+
+// Save application settings
+function saveSettings() {
+    // Get form values
+    const settings = {
+        capture_timeout: document.getElementById('capture-timeout').value,
+        max_packet_buffer: document.getElementById('max-packet-buffer').value,
+        flow_collector_port: document.getElementById('flow-collector-port').value,
+        flow_analysis_interval: document.getElementById('flow-analysis-interval').value,
+        anomaly_check_interval: document.getElementById('anomaly-check-interval').value,
+        anomaly_threshold: document.getElementById('anomaly-threshold').value,
+        items_per_page: document.getElementById('items-per-page').value,
+        chart_refresh_interval: document.getElementById('chart-refresh-interval').value
+    };
+    
+    // Send settings to the server
+    fetch('/api/settings/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showAlert('Settings saved successfully', 'success');
+        } else {
+            throw new Error('Failed to save settings');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving settings:', error);
+        showAlert('Error saving settings: ' + error.message, 'danger');
+    });
+}
+
+// Reset settings to default values
+function resetSettings() {
+    fetch('/api/settings/reset', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showAlert('Settings reset to default values', 'success');
+            loadSettings(); // Reload settings
+        } else {
+            throw new Error('Failed to reset settings');
+        }
+    })
+    .catch(error => {
+        console.error('Error resetting settings:', error);
+        showAlert('Error resetting settings: ' + error.message, 'danger');
+    });
+}
+
+// Load network interfaces
+function loadInterfaces() {
+    const interfacesList = document.getElementById('interfaces-list');
+    
+    if (!interfacesList) return;
+    
+    // Show loading
+    interfacesList.innerHTML = `
+        <div class="d-flex justify-content-center align-items-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+            <span class="ms-3">Loading interfaces...</span>
+        </div>
+    `;
+    
+    fetch('/api/settings/interfaces')
+        .then(response => response.json())
+        .then(interfaces => {
+            // Clear loading
+            interfacesList.innerHTML = '';
+            
+            if (interfaces.length > 0) {
+                // Add each interface as a list item
+                interfaces.forEach(iface => {
+                    const item = document.createElement('div');
+                    item.className = 'list-group-item';
+                    
+                    // Create status badge
+                    let statusBadge = '';
+                    if (iface.is_up) {
+                        statusBadge = '<span class="badge bg-success ms-2">Up</span>';
+                    } else {
+                        statusBadge = '<span class="badge bg-danger ms-2">Down</span>';
+                    }
+                    
+                    // Create loopback badge
+                    let loopbackBadge = '';
+                    if (iface.is_loopback) {
+                        loopbackBadge = '<span class="badge bg-secondary ms-2">Loopback</span>';
+                    }
+                    
+                    item.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">${iface.name} ${statusBadge} ${loopbackBadge}</h6>
+                                <p class="mb-1 text-muted small">${iface.description || 'No description'}</p>
+                                <div class="small">
+                                    ${iface.ip_address ? `<div>IP: ${iface.ip_address}</div>` : ''}
+                                    ${iface.mac_address ? `<div>MAC: ${iface.mac_address}</div>` : ''}
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary capture-interface" data-interface="${iface.name}" ${!iface.is_up ? 'disabled' : ''}>
+                                    <i class="fas fa-play me-1"></i> Capture
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    interfacesList.appendChild(item);
+                });
+                
+                // Add event listeners to capture buttons
+                document.querySelectorAll('.capture-interface').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const interfaceName = this.getAttribute('data-interface');
+                        startQuickCapture(interfaceName);
+                    });
+                });
+            } else {
+                // No interfaces found
+                interfacesList.innerHTML = `
+                    <div class="list-group-item text-center">
+                        <i class="fas fa-exclamation-circle text-warning mb-2"></i>
+                        <p>No network interfaces found.</p>
+                        <button class="btn btn-sm btn-primary" id="refresh-interfaces-empty">Refresh Interfaces</button>
+                    </div>
+                `;
+                
+                // Add event listener to refresh button
+                document.getElementById('refresh-interfaces-empty').addEventListener('click', refreshInterfaces);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading interfaces:', error);
+            interfacesList.innerHTML = `
+                <div class="list-group-item text-center text-danger">
+                    <i class="fas fa-exclamation-triangle mb-2"></i>
+                    <p>Error loading interfaces: ${error.message}</p>
+                    <button class="btn btn-sm btn-primary" id="retry-interfaces">Retry</button>
+                </div>
+            `;
+            
+            // Add event listener to retry button
+            document.getElementById('retry-interfaces').addEventListener('click', loadInterfaces);
+        });
+}
+
+// Refresh network interfaces
+function refreshInterfaces() {
+    const refreshBtn = document.getElementById('refresh-interfaces');
+    
+    // Show loading state
+    if (refreshBtn) {
+        const originalText = refreshBtn.innerHTML;
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Refreshing...';
+        
+        // Send request to refresh interfaces
+        fetch('/api/settings/refresh-interfaces', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert(`Interfaces refreshed successfully (${result.count} found)`, 'success');
+                loadInterfaces(); // Reload the interface list
+            } else {
+                throw new Error(result.error || 'Failed to refresh interfaces');
+            }
+        })
+        .catch(error => {
+            console.error('Error refreshing interfaces:', error);
+            showAlert('Error refreshing interfaces: ' + error.message, 'danger');
+        })
+        .finally(() => {
+            // Reset button state
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = originalText;
+            }
+        });
+    }
+}
+
+// Start a quick capture on an interface
+function startQuickCapture(interfaceName) {
+    // Generate a capture name with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const name = `Quick-Capture-${timestamp}`;
+    
+    // Show loading state
+    const captureBtn = document.querySelector(`.capture-interface[data-interface="${interfaceName}"]`);
+    if (captureBtn) {
+        const originalText = captureBtn.innerHTML;
+        captureBtn.disabled = true;
+        captureBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+        
+        // Send request to start capture
+        fetch('/api/packet-analysis/start-capture', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                interface: interfaceName,
+                name: name,
+                filter_expression: '',
+                timeout: 60 // Default to 60 seconds
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showAlert(`Capture started on ${interfaceName}`, 'success');
+            } else {
+                throw new Error(result.error || 'Failed to start capture');
+            }
+        })
+        .catch(error => {
+            console.error('Error starting capture:', error);
+            showAlert('Error starting capture: ' + error.message, 'danger');
+        })
+        .finally(() => {
+            // Reset button state
+            if (captureBtn) {
+                captureBtn.disabled = false;
+                captureBtn.innerHTML = originalText;
+            }
+        });
+    }
+}
+
+// Purge old data
+function purgeData(timeframe) {
+    showAlert(`Data purge functionality is not implemented in this version (selected: ${timeframe})`, 'info');
+}
+
+// Show alert message
+function showAlert(message, type = 'info') {
+    const alertContainer = document.getElementById('alert-container');
+    if (!alertContainer) return;
+    
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show alert-animated`;
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    alertContainer.appendChild(alert);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+    }, 5000);
+}
+</script>
+{% endblock %}

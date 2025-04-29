@@ -1,0 +1,305 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<title>Anomaly Detection - Network Traffic Analysis Tool</title>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title & Controls -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">Anomaly Detection</h1>
+            <p class="text-secondary">Detect unusual patterns and security issues in network traffic</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#start-detection-modal">
+                    <i class="fas fa-play me-2"></i>Start Detection
+                </button>
+                <button id="stop-detection" class="btn btn-danger" disabled>
+                    <i class="fas fa-stop me-2"></i>Stop Detection
+                </button>
+                <button id="refresh-anomalies" class="btn btn-outline-secondary">
+                    <i class="fas fa-sync-alt me-2"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alert-container"></div>
+
+    <!-- Status & Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-4 mb-md-0">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h5>Detection Status: <span class="badge bg-secondary" id="detection-status">Inactive</span></h5>
+                    <p class="text-muted">Anomaly detection engine monitors network traffic for unusual patterns and potential security issues.</p>
+                    <div class="alert alert-warning mb-0">
+                        <div class="d-flex">
+                            <div class="me-2">
+                                <i class="fas fa-exclamation-triangle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h6 class="alert-heading">Detection Configuration</h6>
+                                <p class="mb-0">Configure thresholds and detection methods to match your network patterns.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0">Anomaly Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-uppercase text-muted">Total Anomalies</h6>
+                                    <h2 class="mb-0" id="total-anomalies">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-uppercase text-muted">Unresolved</h6>
+                                    <h2 class="mb-0" id="unresolved-anomalies">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-uppercase text-muted">High Severity</h6>
+                                    <h2 class="mb-0" id="high-severity-anomalies">0</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="anomaly-statistics">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p>Loading statistics...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anomalies Table Section -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Detected Anomalies</h5>
+                </div>
+                <div class="col-auto">
+                    <span id="pagination-info" class="text-muted">Loading...</span>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <!-- Filters -->
+            <div class="p-3 border-bottom">
+                <form id="anomaly-filter-form" class="row g-2">
+                    <div class="col-md-3">
+                        <label for="filter-severity" class="form-label">Severity</label>
+                        <select class="form-select form-select-sm" id="filter-severity">
+                            <option value="">All</option>
+                            <option value="1">Info (1)</option>
+                            <option value="2">Low (2)</option>
+                            <option value="3">Medium (3)</option>
+                            <option value="4">High (4)</option>
+                            <option value="5">Critical (5)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filter-resolved" class="form-label">Status</label>
+                        <select class="form-select form-select-sm" id="filter-resolved">
+                            <option value="">All</option>
+                            <option value="false" selected>Unresolved</option>
+                            <option value="true">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filter-start-time" class="form-label">Start Time</label>
+                        <input type="datetime-local" class="form-control form-control-sm" id="filter-start-time">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filter-end-time" class="form-label">End Time</label>
+                        <input type="datetime-local" class="form-control form-control-sm" id="filter-end-time">
+                    </div>
+                    <div class="col-12 text-end mt-3">
+                        <button type="submit" class="btn btn-sm btn-primary">Apply Filters</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Anomalies Table -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Event Type</th>
+                            <th>Severity</th>
+                            <th>Description</th>
+                            <th>Source IP</th>
+                            <th>Destination IP</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="anomalies-table-body">
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                Loading anomalies...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-transparent">
+            <div class="row align-items-center">
+                <div class="col">
+                    <ul class="pagination mb-0">
+                        <li class="page-item">
+                            <button id="prev-page" class="page-link" disabled>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                        </li>
+                        <li class="page-item">
+                            <button id="next-page" class="page-link" disabled>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anomaly Detection Information -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-0">
+            <h5 class="mb-0">About Anomaly Detection</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Detection Methods</h6>
+                    <ul>
+                        <li><strong>Statistical Methods</strong> - Identifies deviations from statistical norms</li>
+                        <li><strong>Rule-Based Detection</strong> - Uses predefined rules to identify known patterns of malicious activity</li>
+                        <li><strong>Machine Learning</strong> - Trains models on normal traffic patterns to identify anomalies</li>
+                    </ul>
+                    
+                    <h6>Types of Anomalies Detected</h6>
+                    <ul>
+                        <li><strong>Bandwidth Anomalies</strong> - Unusual traffic volume or patterns</li>
+                        <li><strong>Protocol Anomalies</strong> - Unexpected protocol distribution</li>
+                        <li><strong>Connection Anomalies</strong> - Unusual TCP flag patterns or connection behaviors</li>
+                        <li><strong>Flow Anomalies</strong> - Hosts with unusual flow characteristics</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Severity Levels</h6>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Level</th>
+                                <th>Description</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge bg-info">Info (1)</span></td>
+                                <td>Information only</td>
+                                <td>No action required</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-success">Low (2)</span></td>
+                                <td>Minor deviation</td>
+                                <td>Monitor for escalation</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-warning">Medium (3)</span></td>
+                                <td>Significant deviation</td>
+                                <td>Investigate when possible</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-orange">High (4)</span></td>
+                                <td>Potentially malicious</td>
+                                <td>Investigate promptly</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge bg-danger">Critical (5)</span></td>
+                                <td>Malicious or severe issue</td>
+                                <td>Immediate investigation</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Start Detection Modal -->
+<div class="modal fade" id="start-detection-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Start Anomaly Detection</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="start-detection-form">
+                    <div class="mb-3">
+                        <label for="detection-method" class="form-label">Detection Method</label>
+                        <select class="form-select" id="detection-method" required>
+                            <option value="statistical" selected>Statistical</option>
+                            <option value="rule-based">Rule-based</option>
+                            <option value="machine-learning">Machine Learning</option>
+                        </select>
+                        <div class="form-text">The method used to detect anomalies in network traffic</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="detection-sensitivity" class="form-label">Sensitivity (Threshold)</label>
+                        <input type="number" class="form-control" id="detection-sensitivity" value="3.0" min="0.5" max="10" step="0.1" required>
+                        <div class="form-text">Lower values generate more alerts (more sensitive). Default: 3.0</div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Recommended settings:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>For production networks: 3.0 - 5.0 (less sensitive)</li>
+                            <li>For testing environments: 1.0 - 3.0 (more sensitive)</li>
+                            <li>Statistical method works best for general-purpose anomaly detection</li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="start-detection-form" class="btn btn-primary">Start Detection</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/anomaly_detection.js') }}"></script>
+{% endblock %}
