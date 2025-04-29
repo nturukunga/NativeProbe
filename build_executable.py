@@ -26,14 +26,22 @@ def parse_arguments():
                         help='Create a single file executable')
     parser.add_argument('--noconsole', action='store_true',
                         help='Do not show console window (Windows only)')
+    parser.add_argument('--no-desktop', action='store_true',
+                        help='Build standard version instead of desktop version')
     
     return parser.parse_args()
 
-def run_pyinstaller(name, icon=None, onefile=False, noconsole=False):
+def run_pyinstaller(name, icon=None, onefile=False, noconsole=False, desktop_mode=True):
     """Run PyInstaller with the specified options"""
     try:
+        # Use desktop_app.py or main.py as entry point
+        if desktop_mode:
+            entry_script = 'desktop_app.py'
+        else:
+            entry_script = 'main.py'
+            
         # Build the command
-        cmd = ['pyinstaller', 'main.py', '--name', name]
+        cmd = ['pyinstaller', entry_script, '--name', name]
         
         # Add options
         if icon:
@@ -55,6 +63,13 @@ def run_pyinstaller(name, icon=None, onefile=False, noconsole=False):
         cmd.extend(['--hidden-import', 'flask'])
         cmd.extend(['--hidden-import', 'flask_sqlalchemy'])
         cmd.extend(['--hidden-import', 'sqlalchemy'])
+        
+        # Add desktop mode dependencies if needed
+        if desktop_mode:
+            cmd.extend(['--hidden-import', 'pystray'])
+            cmd.extend(['--hidden-import', 'PIL'])
+            cmd.extend(['--hidden-import', 'PIL.Image'])
+            cmd.extend(['--hidden-import', 'PIL.ImageDraw'])
         
         # Run PyInstaller
         logger.info(f"Running PyInstaller with command: {' '.join(cmd)}")

@@ -30,21 +30,66 @@ NativeProbe is a comprehensive network traffic analysis tool designed for cybers
 
 ### Installation
 
-Follow the instructions in the README.md file to install NativeProbe.
+#### Option 1: Automated Installation
+
+Run the installation script to install all dependencies:
+
+```
+# Install in a virtual environment (recommended)
+python install.py
+
+# Install globally
+python install.py --no-venv
+
+# Include development dependencies
+python install.py --dev
+```
+
+#### Option 2: Manual Installation
+
+1. (Optional) Create a virtual environment:
+   ```
+   python -m venv venv
+   
+   # On Windows
+   venv\Scripts\activate
+   
+   # On Linux/macOS
+   source venv/bin/activate
+   ```
+
+2. Install required dependencies:
+   ```
+   pip install flask flask-sqlalchemy psycopg2-binary pyshark scapy influxdb pandas gunicorn email-validator
+   ```
 
 ### First Launch
 
 1. Start NativeProbe by running the executable or using the command line:
    ```
+   # Basic start
    python main.py
+   
+   # Set a custom port
+   python main.py --port 8080
+   
+   # Production mode
+   python main.py --no-debug
    ```
 
-2. Open your web browser and navigate to:
+2. You will see a message indicating the server is running, like:
+   ```
+   Starting Network Traffic Analysis Tool on port 5000
+   * Running on http://0.0.0.0:5000/ (Press CTRL+C to quit)
+   ```
+
+3. Open your web browser and navigate to the URL shown in the console:
    ```
    http://localhost:5000
    ```
+   (or your configured port)
 
-3. The application will automatically initialize the database on first run.
+4. The application will automatically initialize the database on first run.
 
 ### Initial Configuration
 

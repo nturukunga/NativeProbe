@@ -30,17 +30,37 @@ NativeProbe offers a complete suite of network analysis capabilities:
    cd nativeprobe
    ```
 
-2. Install required dependencies:
+2. Run the installation script:
    ```
-   pip install -r requirements.txt
+   # Install in a virtual environment (recommended)
+   python install.py
+   
+   # If you prefer to install globally
+   python install.py --no-venv
    ```
 
-3. Configure database connection in environment variables:
+3. Activate the virtual environment (if you used the default installation):
    ```
+   # On Windows
+   venv\Scripts\activate
+   
+   # On Linux/macOS
+   source venv/bin/activate
+   ```
+
+4. Configure database connection in environment variables:
+   ```
+   # On Windows (PowerShell)
+   $env:DATABASE_URL = "postgresql://username:password@localhost/nativeprobe"
+   
+   # On Windows (CMD)
+   set DATABASE_URL=postgresql://username:password@localhost/nativeprobe
+   
+   # On Linux/macOS
    export DATABASE_URL=postgresql://username:password@localhost/nativeprobe
    ```
 
-4. Start the application:
+5. Start the application:
    ```
    python main.py
    ```
@@ -71,6 +91,8 @@ NativeProbe offers a complete suite of network analysis capabilities:
 
 ### Starting the Application
 
+#### Web Server Mode (Standard)
+
 ```
 python main.py [--port PORT] [--no-debug] [--help]
 ```
@@ -80,9 +102,22 @@ Options:
 - `--no-debug`: Run in production mode without debug
 - `--help`: Show help message
 
-### Accessing the Web Interface
+After starting the server, open a web browser and navigate to `http://localhost:5000` (or your configured port)
 
-Open a web browser and navigate to `http://localhost:5000` (or your configured port)
+#### Desktop Application Mode
+
+```
+python desktop_app.py [--port PORT] [--no-browser] [--no-tray] [--help]
+```
+
+Options:
+- `--port PORT`: Specify the port number to listen on (default: 5000)
+- `--no-browser`: Don't automatically open a browser window
+- `--no-tray`: Don't show system tray icon
+- `--no-debug`: Run in production mode without debug
+- `--help`: Show help message
+
+This mode automatically opens a browser window and provides a system tray icon for controlling the application.
 
 ### Key Workflows
 
