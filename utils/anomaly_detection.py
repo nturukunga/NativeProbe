@@ -6,7 +6,7 @@ import threading
 import time
 import datetime
 import statistics
-from app import db
+from app import db, app
 from models import AnomalyEvent, BandwidthUsage, FlowRecord, Packet
 
 # Set up logging
@@ -39,8 +39,9 @@ def start_anomaly_detection(method='statistical', sens=3.0):
             
             while not stop_detector:
                 try:
-                    # Detect anomalies
-                    detect_anomalies()
+                    # Detect anomalies with Flask application context
+                    with app.app_context():
+                        detect_anomalies()
                     
                     # Sleep for a while
                     time.sleep(300)  # Check every 5 minutes
