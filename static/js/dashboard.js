@@ -39,7 +39,7 @@ function initCharts() {
     // Bandwidth usage chart
     const bandwidthCtx = document.getElementById('bandwidth-chart');
     if (bandwidthCtx) {
-        bandwidthChart = new Chart(bandwidthCtx, {
+        charts.bandwidth = new Chart(bandwidthCtx, {
             type: 'line',
             data: {
                 labels: [],
@@ -205,7 +205,17 @@ function initCharts() {
 }
 
 // Load dashboard data from API
+// Global chart objects
+let charts = {
+    bandwidth: null,
+    protocol: null,
+    traffic: null
+};
+
 function loadDashboardData() {
+    if (!charts.bandwidth) {
+        initCharts();
+    }
     // Update UI to show loading state
     document.querySelectorAll('.chart-loading').forEach(el => {
         el.style.display = 'flex';
@@ -579,6 +589,9 @@ function updateRefreshInterval(seconds) {
     if (refreshInterval) {
         clearInterval(refreshInterval);
     }
+    
+    // Use a faster refresh rate for real-time updates
+    const refreshRate = Math.max(1, Math.min(seconds, 5)); // 1-5 second refresh
     
     // Set up new interval if seconds > 0
     if (seconds > 0) {

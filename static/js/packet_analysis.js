@@ -222,12 +222,17 @@ function loadCaptures() {
 
 // Start a new packet capture
 function startCapture() {
+    // Show loading state
+    if (!startButton) return;
+    
     // Get form data
     const interfaceEl = document.getElementById('capture-interface');
     const nameEl = document.getElementById('capture-name');
     const filterEl = document.getElementById('capture-filter');
     const timeoutEl = document.getElementById('capture-timeout');
     
+    startButton.disabled = true;
+    startButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Starting...';
     const interface = interfaceEl.value;
     const name = nameEl.value;
     const filter = filterEl.value;

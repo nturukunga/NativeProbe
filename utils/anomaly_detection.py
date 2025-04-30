@@ -6,6 +6,7 @@ import threading
 import time
 import datetime
 import statistics
+import numpy as np
 from app import db, app
 from models import AnomalyEvent, BandwidthUsage, FlowRecord, Packet
 
@@ -22,6 +23,10 @@ sensitivity = 3.0  # Default: 3.0 standard deviations
 def start_anomaly_detection(method='statistical', sens=3.0):
     """Start anomaly detection"""
     global detector_thread, stop_detector, detection_method, sensitivity
+    
+    if detector_thread and detector_thread.is_alive():
+        logger.warning("Anomaly detection already running")
+        return False
     
     if detector_thread and detector_thread.is_alive():
         logger.warning("Anomaly detection already running")
@@ -90,7 +95,7 @@ def detect_anomalies():
     detect_bandwidth_anomalies(current_time)
     
     # Check for protocol anomalies
-    detect_protocol_anomalies(current_time)
+    detect_protocol_anomalies(sensitivity)
     
     # Check for connection anomalies
     detect_connection_anomalies(current_time)
@@ -306,6 +311,23 @@ def calculate_severity(value, mean, stdev):
         return 2  # Low
     else:
         return 1  # Info
+
+def calculate_baseline_statistics(data):
+    """Calculate mean and standard deviation for baseline"""
+    if not data:
+        return 0, 0
+    return np.mean(data), np.std(data)
+
+def calculate_severity(z_score):
+    """Calculate severity level based on z-score"""
+    if z_score > 5:
+        return 5  # Critical
+    elif z_score > 4:
+        return 4  # High
+    elif z_score > 3:
+        return 3  # Medium
+    else:
+        return 2  # Low
 
 def create_anomaly_event(event_type, description, severity=3, source_ip=None, destination_ip=None):
     """Create a new anomaly event in the database"""

@@ -348,7 +348,12 @@ function loadTcpFlagsAnalysis(timeRange = '1h') {
     
     // Fetch TCP flags data from API
     fetch(`/api/protocol-analysis/tcp-flags?time_range=${timeRange}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             // Update chart
             updateTcpFlagsChart(data.tcp_flags);
@@ -363,7 +368,7 @@ function loadTcpFlagsAnalysis(timeRange = '1h') {
         })
         .catch(error => {
             console.error('Error loading TCP flags analysis:', error);
-            chartContainer.innerHTML = `<div class="alert alert-danger">Error loading TCP flags analysis: ${error.message}</div>`;
+            chartContainer.innerHTML = `<div class="alert alert-danger">Error loading TCP flags analysis: ${error.toString()}</div>`;
         });
 }
 
@@ -433,7 +438,12 @@ function loadProtocolOverTime(timeRange = '1h', interval = '5m') {
     
     // Fetch protocol over time data from API
     fetch(`/api/protocol-analysis/protocol-over-time?time_range=${timeRange}&interval=${interval}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             // Show chart container
             chartContainer.innerHTML = '<canvas id="protocol-over-time-chart"></canvas>';
@@ -444,7 +454,7 @@ function loadProtocolOverTime(timeRange = '1h', interval = '5m') {
         })
         .catch(error => {
             console.error('Error loading protocol over time data:', error);
-            chartContainer.innerHTML = `<div class="alert alert-danger">Error loading protocol over time data: ${error.message}</div>`;
+            chartContainer.innerHTML = `<div class="alert alert-danger">Error loading protocol over time data: ${error.toString()}</div>`;
         });
 }
 

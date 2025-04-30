@@ -479,7 +479,7 @@ function showResolveModal(anomalyId) {
         modalEl.tabIndex = '-1';
         modalEl.setAttribute('aria-hidden', 'true');
         
-        modalEl.innerHTML = `
+        modalEl.innerHTML = 
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -501,7 +501,7 @@ function showResolveModal(anomalyId) {
                     </div>
                 </div>
             </div>
-        `;
+        ;
         
         document.body.appendChild(modalEl);
         
@@ -509,6 +509,7 @@ function showResolveModal(anomalyId) {
         document.getElementById('submit-resolve').addEventListener('click', function() {
             resolveAnomaly();
         });
+        
     }
     
     // Set anomaly ID in form

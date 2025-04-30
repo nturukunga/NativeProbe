@@ -105,6 +105,10 @@ def refresh_interfaces():
     return len(interfaces)
 
 def start_packet_capture(interface, name, filter_expr='', timeout=60):
+    global SCAPY_AVAILABLE
+    if not SCAPY_AVAILABLE:
+        from scapy.all import get_if_list, conf, sniff
+        SCAPY_AVAILABLE = True
     """Start a packet capture on the specified interface"""
     
     # Create a new capture record in the database
@@ -460,3 +464,38 @@ def get_packet_details(packet):
         }
     
     return details
+def cleanup_stale_captures():
+    """Clean up stale captures that might be stuck"""
+    current_time = datetime.datetime.utcnow()
+    timeout_threshold = current_time - datetime.timedelta(hours=1)
+    
+    with app.app_context():
+        stale_captures = PacketCapture.query.filter(
+            PacketCapture.end_time == None,
+            PacketCapture.start_time < timeout_threshold
+        ).all()
+        
+        for capture in stale_captures:
+            capture.end_time = current_time
+            capture.description += " (Automatically closed due to inactivity)"
+        
+        db.session.commit()
+        logger.info(f"Cleaned up {len(stale_captures)} stale captures")
+        # Remove from active captures
+        for capture in stale_captures:
+            if capture.id in active_captures:
+                del active_captures[capture.id]
+            if capture.id in capture_data:
+                del capture_data[capture.id]
+    logger.info("Stale captures cleaned up")
+# Schedule cleanup every 10 minutes
+cleanup_interval = 600  # 10 minutes
+cleanup_thread = threading.Thread(target=cleanup_stale_captures)
+cleanup_thread.daemon = True
+cleanup_thread.start()
+# Schedule cleanup
+while True:
+    time.sleep(cleanup_interval)
+    cleanup_stale_captures()
+# Note: This is a simplified version of the cleanup function. In a real application,
+# you would want to handle threading and database sessions more robustly.

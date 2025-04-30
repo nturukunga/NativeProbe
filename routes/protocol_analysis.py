@@ -76,52 +76,69 @@ def protocol_distribution():
 @protocol_analysis_bp.route('/api/protocol-analysis/tcp-flags')
 def tcp_flags_analysis():
     """API endpoint to get TCP flag distribution"""
-    time_range = request.args.get('time_range', '1h')  # 1h, 6h, 24h, 7d
-    
-    # Convert time_range to a datetime
-    current_time = datetime.datetime.utcnow()
-    if time_range == '1h':
-        start_time = current_time - datetime.timedelta(hours=1)
-    elif time_range == '6h':
-        start_time = current_time - datetime.timedelta(hours=6)
-    elif time_range == '24h':
-        start_time = current_time - datetime.timedelta(hours=24)
-    elif time_range == '7d':
-        start_time = current_time - datetime.timedelta(days=7)
-    else:
-        start_time = current_time - datetime.timedelta(hours=1)  # Default to 1 hour
-    
-    # Query for TCP packets with flags
-    tcp_packets = Packet.query.filter(
-        Packet.protocol == 'TCP',
-        Packet.timestamp >= start_time,
-        Packet.tcp_flags != None
-    ).all()
-    
-    # Count occurrences of each flag combination
-    flag_counts = {}
-    for packet in tcp_packets:
-        flags = packet.tcp_flags
-        if flags not in flag_counts:
-            flag_counts[flags] = 0
-        flag_counts[flags] += 1
-    
-    # Format data for the frontend
-    result = [
-        {
-            'flags': flags,
-            'count': count,
-            'description': get_tcp_flags_description(flags)
-        } for flags, count in flag_counts.items()
-    ]
-    
-    # Sort by count (descending)
-    result.sort(key=lambda x: x['count'], reverse=True)
-    
-    return jsonify({
-        'tcp_flags': result,
-        'time_range': time_range
-    })
+    try:
+        time_range = request.args.get('time_range', '1h')  # 1h, 6h, 24h, 7d
+        
+        # Convert time_range to a datetime
+        current_time = datetime.datetime.utcnow()
+        if time_range == '1h':
+            start_time = current_time - datetime.timedelta(hours=1)
+        elif time_range == '6h':
+            start_time = current_time - datetime.timedelta(hours=6)
+        elif time_range == '24h':
+            start_time = current_time - datetime.timedelta(hours=24)
+        elif time_range == '7d':
+            start_time = current_time - datetime.timedelta(days=7)
+        else:
+            start_time = current_time - datetime.timedelta(hours=1)  # Default to 1 hour
+        
+        # Query for TCP packets with flags
+        tcp_packets = Packet.query.filter(
+            Packet.protocol == 'TCP',
+            Packet.timestamp >= start_time,
+            Packet.tcp_flags != None
+        ).all()
+        
+        # Count occurrences of each flag combination
+        flag_counts = {}
+        for packet in tcp_packets:
+            flags = packet.tcp_flags
+            if flags not in flag_counts:
+                flag_counts[flags] = 0
+            flag_counts[flags] += 1
+        
+        # Format data for the frontend
+        result = [
+            {
+                'flags': flags,
+                'count': count,
+                'description': get_tcp_flags_description(flags)
+            } for flags, count in flag_counts.items()
+        ]
+        
+        # If empty, add a default entry
+        if not result:
+            result = [{'flags': 'No Data', 'count': 0, 'description': 'No TCP flag data available for the selected time range'}]
+        
+        # Sort by count (descending)
+        result.sort(key=lambda x: x['count'], reverse=True)
+        
+        return jsonify({
+            'tcp_flags': result,
+            'time_range': time_range
+        })
+    except Exception as e:
+        # Log the error
+        import traceback
+        print(f"Error in TCP flags analysis: {str(e)}")
+        print(traceback.format_exc())
+        
+        # Return a helpful error response
+        return jsonify({
+            'tcp_flags': [{'flags': 'Error', 'count': 0, 'description': f'Error retrieving data: {str(e)}'}],
+            'time_range': request.args.get('time_range', '1h'),
+            'error': str(e)
+        }), 500
 
 def get_tcp_flags_description(flags):
     """Get a description of TCP flags"""
@@ -146,87 +163,117 @@ def get_tcp_flags_description(flags):
 @protocol_analysis_bp.route('/api/protocol-analysis/protocol-over-time')
 def protocol_over_time():
     """API endpoint to get protocol distribution over time"""
-    time_range = request.args.get('time_range', '1h')  # 1h, 6h, 24h, 7d
-    interval = request.args.get('interval', '5m')  # 1m, 5m, 10m, 30m, 1h
-    
-    # Convert time_range to a datetime
-    current_time = datetime.datetime.utcnow()
-    if time_range == '1h':
-        start_time = current_time - datetime.timedelta(hours=1)
-        if interval == '1m':
-            group_minutes = 1
-        else:
-            group_minutes = 5  # Default to 5m for 1h
-    elif time_range == '6h':
-        start_time = current_time - datetime.timedelta(hours=6)
-        if interval == '5m':
-            group_minutes = 5
-        elif interval == '10m':
-            group_minutes = 10
-        else:
-            group_minutes = 30  # Default to 30m for 6h
-    elif time_range == '24h':
-        start_time = current_time - datetime.timedelta(hours=24)
-        if interval == '10m':
-            group_minutes = 10
-        elif interval == '30m':
-            group_minutes = 30
-        else:
-            group_minutes = 60  # Default to 1h for 24h
-    elif time_range == '7d':
-        start_time = current_time - datetime.timedelta(days=7)
-        group_minutes = 60  # Always use 1h for 7d
-    else:
-        start_time = current_time - datetime.timedelta(hours=1)
-        group_minutes = 5  # Default
-    
-    # Query for protocol distribution data
-    protocols = ProtocolDistribution.query.filter(
-        ProtocolDistribution.timestamp >= start_time
-    ).order_by(ProtocolDistribution.timestamp.asc()).all()
-    
-    # Group data by time interval
-    time_series = {}
-    for proto in protocols:
-        # Round the timestamp to the nearest interval
-        rounded_time = proto.timestamp.replace(
-            second=0,
-            microsecond=0,
-            minute=(proto.timestamp.minute // group_minutes) * group_minutes
-        )
+    try:
+        time_range = request.args.get('time_range', '1h')  # 1h, 6h, 24h, 7d
+        interval = request.args.get('interval', '5m')  # 1m, 5m, 10m, 30m, 1h
         
-        time_key = rounded_time.isoformat()
+        # Convert time_range to a datetime
+        current_time = datetime.datetime.utcnow()
+        if time_range == '1h':
+            start_time = current_time - datetime.timedelta(hours=1)
+            if interval == '1m':
+                group_minutes = 1
+            else:
+                group_minutes = 5  # Default to 5m for 1h
+        elif time_range == '6h':
+            start_time = current_time - datetime.timedelta(hours=6)
+            if interval == '5m':
+                group_minutes = 5
+            elif interval == '10m':
+                group_minutes = 10
+            else:
+                group_minutes = 30  # Default to 30m for 6h
+        elif time_range == '24h':
+            start_time = current_time - datetime.timedelta(hours=24)
+            if interval == '10m':
+                group_minutes = 10
+            elif interval == '30m':
+                group_minutes = 30
+            else:
+                group_minutes = 60  # Default to 1h for 24h
+        elif time_range == '7d':
+            start_time = current_time - datetime.timedelta(days=7)
+            group_minutes = 60  # Always use 1h for 7d
+        else:
+            start_time = current_time - datetime.timedelta(hours=1)
+            group_minutes = 5  # Default
         
-        if time_key not in time_series:
-            time_series[time_key] = {}
+        # Query for protocol distribution data
+        protocols = ProtocolDistribution.query.filter(
+            ProtocolDistribution.timestamp >= start_time
+        ).order_by(ProtocolDistribution.timestamp.asc()).all()
         
-        if proto.protocol not in time_series[time_key]:
-            time_series[time_key][proto.protocol] = {
-                'packet_count': 0,
-                'byte_count': 0
+        # Group data by time interval
+        time_series = {}
+        for proto in protocols:
+            # Round the timestamp to the nearest interval
+            rounded_time = proto.timestamp.replace(
+                second=0,
+                microsecond=0,
+                minute=(proto.timestamp.minute // group_minutes) * group_minutes
+            )
+            
+            time_key = rounded_time.isoformat()
+            
+            if time_key not in time_series:
+                time_series[time_key] = {}
+            
+            if proto.protocol not in time_series[time_key]:
+                time_series[time_key][proto.protocol] = {
+                    'packet_count': 0,
+                    'byte_count': 0
+                }
+            
+            time_series[time_key][proto.protocol]['packet_count'] += proto.packet_count
+            time_series[time_key][proto.protocol]['byte_count'] += proto.byte_count
+        
+        # Format data for the frontend
+        result = []
+        for time_key, protocols in time_series.items():
+            time_data = {
+                'timestamp': time_key,
             }
+            
+            # Add protocol data
+            for proto, data in protocols.items():
+                time_data[proto] = data['byte_count']
+            
+            result.append(time_data)
         
-        time_series[time_key][proto.protocol]['packet_count'] += proto.packet_count
-        time_series[time_key][proto.protocol]['byte_count'] += proto.byte_count
-    
-    # Format data for the frontend
-    result = []
-    for time_key, protocols in time_series.items():
-        time_data = {
-            'timestamp': time_key,
-        }
+        # If no data is available, provide default structure
+        if not result:
+            # Create dummy time points
+            dummy_times = []
+            for i in range(5):
+                time_point = current_time - datetime.timedelta(minutes=i * group_minutes)
+                rounded_time = time_point.replace(
+                    second=0,
+                    microsecond=0,
+                    minute=(time_point.minute // group_minutes) * group_minutes
+                )
+                dummy_times.append(rounded_time.isoformat())
+            
+            # Create empty data points
+            result = [{'timestamp': t, 'No Data': 0} for t in dummy_times]
         
-        # Add protocol data
-        for proto, data in protocols.items():
-            time_data[proto] = data['byte_count']
+        # Sort by timestamp
+        result.sort(key=lambda x: x['timestamp'])
         
-        result.append(time_data)
-    
-    # Sort by timestamp
-    result.sort(key=lambda x: x['timestamp'])
-    
-    return jsonify({
-        'time_series': result,
-        'time_range': time_range,
-        'interval': interval
-    })
+        return jsonify({
+            'time_series': result,
+            'time_range': time_range,
+            'interval': interval
+        })
+    except Exception as e:
+        # Log the error
+        import traceback
+        print(f"Error in protocol over time analysis: {str(e)}")
+        print(traceback.format_exc())
+        
+        # Return a helpful error response
+        return jsonify({
+            'time_series': [{'timestamp': datetime.datetime.utcnow().isoformat(), 'Error': 0}],
+            'time_range': request.args.get('time_range', '1h'),
+            'interval': request.args.get('interval', '5m'),
+            'error': str(e)
+        }), 500
